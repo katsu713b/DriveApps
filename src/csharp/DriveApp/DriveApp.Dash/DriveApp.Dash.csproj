@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+	  <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <ImplicitUsings>enable</ImplicitUsings>
+	<ServerGarbageCollection>true</ServerGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="appsettings.Development.json" />
+    <None Remove="appsettings.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.Development.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Ports" Version="7.0.0" />
+    <PackageReference Include="System.Runtime.Caching" Version="7.0.0" />
+    <PackageReference Include="Wpf.Extensions.Hosting" Version="1.1.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="GPSLap\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PFC\PFC\PFC.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="locations.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

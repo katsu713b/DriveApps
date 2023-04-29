@@ -1,0 +1,298 @@
+﻿<Window x:Class="DriveApp.Dash.UI.DashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DriveApp.Dash.UI"
+        mc:Ignorable="d"
+        Title="DashWindow" Height="600" Width="1024" WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
+        IsHitTestVisible="True" Background="Black">
+    <Window.DataContext>
+        <local:DashWindowVM/>
+    </Window.DataContext>
+    <Window.Resources>
+        <Style TargetType="Label">
+            <Setter Property="Background" Value="#FF252525"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="Arial Black"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontFamily" Value="EurasiaEx"/>
+        </Style>
+
+        <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock" x:Key="RpmPos">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Canvas.Top" Value="54"/>
+            <Setter Property="TextBlock.Effect">
+                <Setter.Value>
+                    <DropShadowEffect RenderingBias="Performance" BlurRadius="2" Direction="45" ShadowDepth="3"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Border">
+            <Setter Property="BorderBrush" Value="White"/>
+            <Setter Property="BorderThickness" Value="5,14,5,5"/>
+        </Style>
+        <Style BasedOn="{StaticResource {x:Type Border}}" TargetType="Border" x:Key="SmallMonitor">
+            <Setter Property="Margin" Value="8,16,0,16"/>
+            <Setter Property="Width" Value="130"/>
+        </Style>
+        <!--
+        
+                    <TextBlock.Effect>
+                        <DropShadowEffect RenderingBias="Performance" BlurRadius="2" Direction="45" ShadowDepth="3"/>
+                    </TextBlock.Effect>
+                </TextBlock>
+        
+        
+            <Border BorderBrush="White" BorderThickness="5,14,5,5" Margin="8,0,8,0">
+            <Border BorderBrush="White" BorderThickness="5,14,5,5" Margin="8,16,0,16" Width="130">
+                <Grid>
+                    <Label Content="KNOCK" Margin="0,-16,0,0" HorizontalAlignment="Center" Background="Black" Foreground="White" FontFamily="Arial Black" FontSize="20" VerticalAlignment="Top" Padding="5,0,5,0"/>
+                    <TextBlock Text="{Binding KnockLevel}" HorizontalAlignment="Center" Background="{x:Null}" MinHeight="64" Foreground="White" FontFamily="EurasiaEx" FontSize="48" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+        <Style TargetType="ListBoxItem">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsAsync}" Value="WA">
+                    <Setter Property="Foreground" Value="Red" />
+                </DataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding Path=Name}" Value="Portland" />
+                        <Condition Binding="{Binding Path=State}" Value="OR" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="Cyan" />
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+        
+        
+                        <Path Stroke="White" StrokeThickness="20" Data="M 100,10 A 100,50 90 0 0 100,200" />
+        -->
+        <Storyboard x:Key="sbMainWarn" Name="sbMainWarn">
+            <ColorAnimationUsingKeyFrames
+                Storyboard.TargetProperty="Color" Storyboard.TargetName="BorderMain" Duration="0:0:0.20" FillBehavior="HoldEnd" AutoReverse="False" RepeatBehavior="Forever">
+                <ColorAnimationUsingKeyFrames.KeyFrames>
+                    <DiscreteColorKeyFrame Value="Red" KeyTime="0:0:0" />
+                    <DiscreteColorKeyFrame Value="#00FF0000" KeyTime="0:0:0.10" />
+                </ColorAnimationUsingKeyFrames.KeyFrames>
+            </ColorAnimationUsingKeyFrames>
+        </Storyboard>
+
+        <Storyboard x:Key="sbRpmWarn">
+            <DoubleAnimationUsingKeyFrames
+                Storyboard.TargetProperty="Opacity" Storyboard.TargetName="RctRpmWarn" Duration="0:0:0.20" FillBehavior="HoldEnd" AutoReverse="False" RepeatBehavior="Forever">
+                <DiscreteDoubleKeyFrame KeyTime="0:0:0" Value ="1" ></DiscreteDoubleKeyFrame>
+                <DiscreteDoubleKeyFrame KeyTime="0:0:0.10" Value="0" ></DiscreteDoubleKeyFrame>
+            </DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+    </Window.Resources>
+    <DockPanel LastChildFill="True" Name="DockP">
+        <Grid DockPanel.Dock="Top" Height="96">
+            <!--
+                bar   0000-8000
+                red   7250-7350
+                flush 7350-
+            -->
+            <Canvas Name="canvA" Margin="112,16,112,16">
+                <Rectangle Panel.ZIndex="1" Width="800" Height="64">
+                    <Rectangle.Fill>
+                        <LinearGradientBrush EndPoint="1,0.5" StartPoint="0, 0.5">
+                            <GradientStop Color="Green"/>
+                            <GradientStop Color="Lime" Offset="0.25"/>
+                            <GradientStop Color="Yellow" Offset="0.40"/>
+                            <GradientStop Color="Yellow" Offset="0.70"/>
+                            <GradientStop Color="Red" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Rectangle.Fill>
+                </Rectangle>
+                <Rectangle Panel.ZIndex="2" Fill="Red" Width="800" Height="64" Visibility="{Binding RpmBarCautionVisible}"/>
+                <Rectangle Panel.ZIndex="2" x:Name="RctRpmWarn" Fill="Red" Width="800" Height="64" Opacity="0">
+                </Rectangle>
+                <Rectangle Panel.ZIndex="5" Fill="#B2000000" Height="64" Canvas.Left="{Binding RpmBarPos}" Width="{Binding RpmBarWidth}" />
+
+                <Rectangle Panel.ZIndex="10" Width="4" Height="64" Canvas.Left="728" Stroke="White" />
+                <Rectangle Panel.ZIndex="10" Width="2" Height="64" Canvas.Left="100" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="2" Height="64" Canvas.Left="200" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="2" Height="64" Canvas.Left="300" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="2" Height="64" Canvas.Left="400" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="2" Height="64" Canvas.Left="500" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="2" Height="64" Canvas.Left="600" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="2" Height="64" Canvas.Left="700" Fill="#FF252525" />
+
+                <Rectangle Panel.ZIndex="10" Width="1" Height="64" Canvas.Left="50" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="1" Height="64" Canvas.Left="150" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="1" Height="64" Canvas.Left="250" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="1" Height="64" Canvas.Left="350" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="1" Height="64" Canvas.Left="450" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="1" Height="64" Canvas.Left="550" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="1" Height="64" Canvas.Left="650" Fill="#FF252525" />
+                <Rectangle Panel.ZIndex="10" Width="1" Height="64" Canvas.Left="750" Fill="#FF252525" />
+
+                <TextBlock Text="0" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="-8"/>
+                <TextBlock Text="1" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="91" />
+                <TextBlock Text="2" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="191"/>
+                <TextBlock Text="3" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="291"/>
+                <TextBlock Text="4" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="391"/>
+                <TextBlock Text="5" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="491"/>
+                <TextBlock Text="6" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="591"/>
+                <TextBlock Text="7" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="691"/>
+                <TextBlock Text="8" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="791"/>
+            </Canvas>
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Height="128" Panel.ZIndex="6">
+            <Border Style="{StaticResource SmallMonitor}" Width="180">
+                <Grid>
+                    <Label Content="BAT" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
+                    <TextBlock Text="{Binding BattVoltage}" HorizontalAlignment="Center" MinHeight="64" FontSize="48" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource SmallMonitor}">
+                <Grid Background="{Binding KnockBackGColor}">
+                    <Label Content="KNOCK" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
+                    <TextBlock Text="{Binding KnockLevel}" HorizontalAlignment="Center" MinHeight="64" FontSize="48" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource SmallMonitor}" BorderBrush="#FF67BDFF">
+                <Grid Background="{Binding WaterTempBackGColor}">
+                    <Label Content="WAT" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
+                    <TextBlock Text="{Binding WaterTemp}" MinHeight="64" FontSize="48" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource SmallMonitor}" BorderBrush="#FF67BDFF">
+                <Grid Background="{Binding AirTempBackGColor}">
+                    <Label Content="AIR" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
+                    <TextBlock Text="{Binding AirTemp}" HorizontalAlignment="Center" MinHeight="64" FontSize="48" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource SmallMonitor}" BorderBrush="#FF67BDFF">
+                <Grid Background="{Binding FuelTempBackGColor}">
+                    <Label Content="FUEL" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
+                    <TextBlock Text="{Binding FuelTemp}" HorizontalAlignment="Center" MinHeight="64" FontSize="48" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource SmallMonitor}">
+                <Grid>
+                    <Label Content="IGN Ld" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
+                    <TextBlock Text="{Binding IGNAngleLd}" HorizontalAlignment="Center" MinHeight="64" FontSize="48" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+            <Border Style="{StaticResource SmallMonitor}">
+                <Grid>
+                    <Label Content="IGN Tr" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
+                    <TextBlock Text="{Binding IGNAngleTr}" HorizontalAlignment="Center" MinHeight="64" FontSize="48" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+        </StackPanel>
+        <DockPanel  DockPanel.Dock="Top" LastChildFill="True">
+            <DockPanel DockPanel.Dock="Left"  LastChildFill="True" Width="286">
+                <Border DockPanel.Dock="Bottom" BorderThickness="5,14,5,5" Margin="8,8,4,0" Height="96" Background="{Binding BoostBackGColor}">
+                    <Grid>
+                        <Label Content="BOOST" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
+                        <TextBlock Background="{x:Null}" MinHeight="64" FontSize="48" HorizontalAlignment="Right" Text="{Binding Boost}" VerticalAlignment="Center" Margin="0,-10,46,0"/>
+                        <Label Content="x100kPa" HorizontalAlignment="Center" VerticalAlignment="Bottom" FontSize="14" Background="{x:Null}" Margin="0,0,0,-2" />
+                    </Grid>
+                </Border>
+                <Border DockPanel.Dock="Bottom" BorderBrush="White" BorderThickness="5,8,5,5" Margin="8,0,4,0">
+                    <Grid>
+                        <Canvas Margin="0,0,0,28" Width="200" Height="200" >
+                            <Ellipse StrokeThickness="2" Width="200" Height="200" Stroke="#FF0066CC"/>
+                            <Ellipse StrokeThickness="1" Width="100" Height="100" Stroke="#FF0066CC" Canvas.Left="50" Canvas.Top="50"/>
+                            <Ellipse StrokeThickness="1" Width="8" Height="8" Fill="Red" Canvas.Left="95" Canvas.Top="95"/>
+                        </Canvas>
+                        <TextBlock Text="0.0G" Foreground="White" FontSize="24" Margin="0,217,0,0" HorizontalAlignment="Center" VerticalAlignment="Center"></TextBlock>
+                    </Grid>
+                </Border>
+            </DockPanel>
+            <StackPanel  DockPanel.Dock="Right" Width="286">
+                <Border BorderBrush="White" BorderThickness="4,14,4,4" Margin="4,0,8,4" Height="88">
+                    <Grid>
+                        <Label Content="LAP" Margin="0,-18,0,0" HorizontalAlignment="Center" FontSize="24" VerticalAlignment="Top" Padding="5,0,5,0" Grid.Column="1"/>
+                        <TextBlock Text="-:--.---" HorizontalAlignment="Right" FontSize="34" VerticalAlignment="Center" Margin="0,0,25,0"/>
+                    </Grid>
+                </Border>
+                <Border BorderBrush="Yellow" BorderThickness="4,14,4,4" Margin="4,4,8,4" Height="88">
+                    <Grid>
+                        <Label Content="LAST" Margin="0,-18,0,0" HorizontalAlignment="Center" Foreground="Yellow" FontSize="24" Padding="5,0,5,0" Grid.Column="3"/>
+                        <TextBlock Text="-:--.---" HorizontalAlignment="Right" FontSize="34" Foreground="Yellow" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                    </Grid>
+                </Border>
+                <Border BorderBrush="HotPink" BorderThickness="4,14,4,4" Margin="4,4,8,4" Height="88">
+                    <Grid>
+                        <Label Content="BEST" Margin="0,-18,0,0" HorizontalAlignment="Center" Foreground="HotPink" FontSize="24" Padding="5,0,5,0"/>
+                        <TextBlock Text="-:--.---" HorizontalAlignment="Right" Foreground="HotPink"  FontSize="34" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                    </Grid>
+                </Border>
+                <Border BorderBrush="White" BorderThickness="4,14,4,4" Margin="4,4,8,4" Height="88">
+                    <Grid>
+                        <Label Content="TIME" Margin="0,-18,0,0" HorizontalAlignment="Center" FontSize="24" VerticalAlignment="Top" Padding="5,0,5,0"/>
+                        <TextBlock Text="{Binding Now}" FontSize="36" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,30,0"/>
+                        <TextBlock Text="{Binding NowSec}" FontSize="28" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,5,-180,0"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
+            <Grid DockPanel.Dock="Right">
+                <Border BorderBrush="White" BorderThickness="5,14,5,5" Margin="8,0,8,0">
+                    <Border.Background>
+                        <SolidColorBrush x:Name="BorderMain" Color="#00FF0000"></SolidColorBrush>
+                    </Border.Background>
+                    
+                    <StackPanel Background="{Binding MainBackGColor}">
+                        <Canvas Width="320" Height="20" Margin="60,10,40,0">
+                            <Label Content="THR" Margin="-46,-2,0,0" FontSize="14" Background="{x:Null}"></Label>
+                            <Rectangle Width="320" Height="20" Fill="Lime"></Rectangle>
+                            <Rectangle Width="{Binding ThrottleBarWidth}" Height="20" Fill="#B2000000" Canvas.Left="{Binding ThrottleBarPos}"></Rectangle>
+
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="80" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="160" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="240" Fill="#FF252525" />
+                        </Canvas>
+                        <Canvas Width="320" Height="20" Margin="20,8,0,0">
+                            <Label Content="BST" Margin="-46,-2,0,0" FontSize="14" Background="{x:Null}"></Label>
+                            <Rectangle Width="320" Height="20" Fill="#FFFF9900"></Rectangle>
+                            <Rectangle Width="{Binding BoostBarNegativeWidth}" Height="20" Fill="#8C000000" Canvas.Left="0" Canvas.Top="0"></Rectangle>
+                            <Rectangle Width="{Binding BoostBarPositiveWidth}" Height="20" Fill="#8C000000" Canvas.Left="{Binding BoostBarPositivePos}"></Rectangle>
+
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="14.3" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="3" Height="20" Canvas.Left="28.5" Fill="White" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="42.8" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="57.1" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="71.4" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="85.7" Fill="#FF252525" />
+                            
+                            <Rectangle Panel.ZIndex="6" Width="5" Height="20" Canvas.Left="98" Fill="White" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="116.9" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="133.8" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="150.8" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="167.7" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="3" Height="20" Canvas.Left="184.6" Fill="White" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="202.5" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="218.4" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="235.3" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="252.2" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="3" Height="20" Canvas.Left="269.2" Fill="White" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="286.12" Fill="#FF252525" />
+                            <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="303" Fill="#FF252525" />
+                        </Canvas>
+
+                        <TextBlock Text="{Binding Speed}" FontSize="120" MinHeight="169" Margin="34,0,0,0" Padding="5,5,56,5" HorizontalAlignment="Center"/>
+                        <Label Content="KMH" HorizontalAlignment="Center" Background="{x:Null}" Foreground="White" FontFamily="EurasiaEx" FontSize="18" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="0,-36,0,0"/>
+                        <Grid Margin="0,10,0,0" MinHeight="105">
+                            <TextBlock Text="{Binding RpmTop}" Background="{x:Null}" Foreground="Yellow" FontSize="64" MinHeight="95" Margin="0,0,200,0" Padding="5,5,0,5" VerticalAlignment="Top" HorizontalAlignment="Right"/>
+                            <TextBlock Text="{Binding RpmUnder}" Background="{x:Null}" Foreground="Yellow" FontSize="40" MinHeight="63" Margin="0,23,116,0" Padding="0,5,5,5" VerticalAlignment="Top" HorizontalAlignment="Right" />
+                        </Grid >
+                        <Label Content="RPM" HorizontalAlignment="Center" Background="{x:Null}" Foreground="White" FontFamily="EurasiaEx" FontSize="18" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Margin="0,-30,0,0"/>
+
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </DockPanel>
+    </DockPanel>
+
+</Window>

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "PFC.WorkerService.Monitoring": {
+      "commandName": "Project",
+      "commandLineArgs": "--PortOption:Name0=COM4",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true
+    }
+  }
+}

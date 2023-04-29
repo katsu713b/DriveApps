@@ -1,0 +1,16 @@
+﻿<Window x:Class="DriveApp.Dash.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DriveApp.Dash.UI"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="600" Width="1024" WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+    <Window.DataContext>
+        <local:MainWindowVM/>
+    </Window.DataContext>
+    <Grid>
+        <Label Name="title" Content="{Binding Title}" />
+        <Frame Name="frame" Content="Frame" Margin="30,80,30,30" NavigationUIVisibility="Hidden"/>
+    </Grid>
+</Window>
