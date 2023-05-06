@@ -9,6 +9,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
 	<ServerGarbageCollection>true</ServerGarbageCollection>
 	<PlatformTarget>x64</PlatformTarget>
+	  <VersionPrefix>0.1.0</VersionPrefix>
+	  <Authors>katsu713b</Authors>
+	  <Copyright>Copyright © 2023</Copyright>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
