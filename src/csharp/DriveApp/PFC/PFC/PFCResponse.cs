@@ -1,5 +1,6 @@
 ﻿using System.Buffers.Binary;
 using System.IO.MemoryMappedFiles;
+using System.Runtime.Intrinsics.Arm;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace PFC;
@@ -28,15 +29,26 @@ public abstract class ResponseBase
 
         return data.ToArray();
     }
-    public bool ChecksumVerification()
+    public static bool ChecksumVerification(ReadOnlySpan<byte> data)
     {
         byte buf = 0;
-        for (int i = 0; i < _rawData.Length; i++)
+        for (int i = 0; i < data.Length; i++)
         {
-            buf = (byte)(_rawData[i] + buf);
+            buf = (byte)(data[i] + buf);
         }
 
         return buf == 255;
+    }
+
+    public static byte CalcChecksum(ReadOnlySpan<byte> data)
+    {
+        byte buf = 0;
+        for (int i = 0; i < data.Length; i++)
+        {
+            buf = (byte)(data[i] + buf);
+        }
+
+        return (byte)(~buf);
     }
 
     public abstract bool IsValid { get; }
@@ -159,12 +171,60 @@ public sealed class BasicData : ResponseBase
 
 public sealed class AdvancedData : ResponseBase
 {
+    public byte[] ConvertToBasicRaw()
+    {
+        var data = new byte[23];
+        data[0] = BasicData.Command[0];
+        data[1] = 22;
+        // Inj Duty
+        var injduty = (int)(GetInjectorPrDuty() * 10);
+
+        data[2] = (byte)(injduty % 256); //  0.1%
+        data[3] = (byte)(injduty / 256); // 25.6%
+        // IGN Ld
+        data[4] = _rawData[14];
+        // IGN Tr
+        data[6] = _rawData[15];
+        // RPM
+        data[8] = _rawData[2];
+        data[9] = _rawData[3];
+        // speed
+        data[10] = _rawData[24];
+        data[11] = _rawData[25];
+        //AirIPressure
+        // kg/cm2 -> mmHg
+        // 1 mmHg = 0.00131579 kg/cm2
+        // 0 = -760
+        var boostmmhg = AirIPressure / 0.00131579;
+
+        data[12] = (byte)(boostmmhg % 256);
+        data[13] = (byte)(boostmmhg / 256);
+        // Knock
+        data[14] = _rawData[22];
+        //data[15] = 0;
+        // WAT
+        data[16] = _rawData[20];
+        // Air
+        data[18] = _rawData[21];
+        // BAT
+        data[20] = _rawData[23];
+        data[21] = 0;
+
+        //data[17] = 48;
+        //data[19] = 47;
+
+        // Checksum
+        data[22] = CalcChecksum(data[0..23]);
+
+        return data;
+    }
+
     public AdvancedData(long unixTimeMs, byte[] rawData) : base(unixTimeMs, rawData)
     {
         if (rawData.Length != RawDataLength) return;
         if (rawData[0] != ResponseHeader[0]) return;
         if (rawData[1] != ResponseHeader[1]) return;
-        if (!ChecksumVerification()) return;
+        if (!ChecksumVerification(rawData)) return;
         _isValid = true;
     }
     //public AdvancedData(byte[] advancedData) : base(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), advancedData) { }
@@ -191,6 +251,11 @@ public sealed class AdvancedData : ResponseBase
     //{
     //    _accessor.Write(data, 0, data.Length);
     //}
+
+    public float GetInjectorPrDuty()
+    {
+        return InjectorWidthPrimary / (600.0f / Rpm);
+    }
 
     /// <summary>
     /// Engine Speed(RPM)

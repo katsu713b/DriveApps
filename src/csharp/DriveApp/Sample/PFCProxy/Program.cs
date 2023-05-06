@@ -1,11 +1,19 @@
 ﻿using PFCProxy;
 using System.IO.Ports;
+using PFC;
+using System.Data;
+using System;
+using System.IO;
 
+foreach (var name in SerialPort.GetPortNames())
+{
+    Console.WriteLine(name);
+}
 
-Console.WriteLine("入力用シリアルポートのポート番号[9]：");
-string comNoStr = Console.ReadLine();
+Console.WriteLine("入力用シリアルポートのポート番号[5]：");
+string? comNoStr = Console.ReadLine();
 if (string.IsNullOrEmpty(comNoStr))
-    comNoStr = "9";
+    comNoStr = "5";
 
 var comIn = $"COM{comNoStr}";
 
@@ -17,6 +25,12 @@ if (string.IsNullOrEmpty(comNoStr))
 var comOut = $"COM{comNoStr}";
 
 
+Console.WriteLine("Timeout[200]：");
+var timeoutStr = Console.ReadLine();
+var timeout = 200;
+if (!string.IsNullOrEmpty(timeoutStr))
+    timeout = int.Parse(timeoutStr);
+
 var running = true;
 
 Console.CancelKeyPress += (object? sender, ConsoleCancelEventArgs e) =>
@@ -25,85 +39,87 @@ Console.CancelKeyPress += (object? sender, ConsoleCancelEventArgs e) =>
     e.Cancel = true;
 };
 
-Run();
 
 
-void Run()
+var logfile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"{DateTime.Now.ToString("Proxy_yyyy-MM-dd-HHmmss")}.log");
+
+using (SerialPort serialIn = new SerialPort())
+using (SerialPort serialOut = new SerialPort())
 {
+    serialIn.SetUpPFC(comIn, 400, 400);
+    serialOut.SetUpPFC(comOut, timeout, timeout);
 
-    var logfile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"{DateTime.Now.ToString("Proxy_yyyy-MM-dd-HHmmss")}.log");
+    //_serialPort.ReadTimeout = 0; // 1s
+    //_serialPort.WriteTimeout = 1000; // 1s
 
-    using (SerialPort serialIn = new SerialPort(comIn, 19200, Parity.Even, 8, StopBits.One))
-    using (SerialPort serialOut = new SerialPort(comOut, 19200, Parity.Even, 8, StopBits.One))
+    //_serialPort.DataReceived += _serialPort_DataReceived;
+    serialIn.Open();
+    serialOut.Open();
+
+    //byte[] cmd = new byte[] { 0xF0, 0x2, 0xD };
+
+
+    using (FileStream fileStream = new FileStream(logfile, FileMode.Append, FileAccess.Write))
     {
-        //_serialPort.ReadTimeout = 0; // 1s
-        //_serialPort.WriteTimeout = 1000; // 1s
 
-        //_serialPort.DataReceived += _serialPort_DataReceived;
-        serialIn.Open();
-        serialOut.Open();
-
-        byte[] cmd = new byte[] { 0xF0, 0x2, 0xD };
-
-        serialIn.DiscardInBuffer();
-        serialIn.DiscardOutBuffer();
-
-        serialOut.DiscardInBuffer();
-        serialOut.DiscardOutBuffer();
-
-        FileStream fileStream = new FileStream(logfile, FileMode.Append, FileAccess.Write);
-        const int icmd = 0;
-        const int ilen = 1;
-        try
+        while (running)
         {
-            byte[] buffer = new byte[256];
-            Span<byte> span = buffer;
+            serialIn.DiscardInBuffer();
+            serialIn.DiscardOutBuffer();
 
-            while (running)
+            serialOut.DiscardInBuffer();
+            serialOut.DiscardOutBuffer();
+            //await Task.Delay(1000);
+            try
             {
-                // Soft/Commander -> PFC
-                serialIn.Read(buffer, 0, 2);
-                serialIn.Read(buffer, 2, buffer[ilen] - 1);
+                Console.WriteLine("Start.");
 
-                serialOut.DiscardInBuffer();
-                serialOut.Write(buffer, 0, buffer[ilen] + 1);
+                while (running)
+                {
+                    // Soft/Commander -> Proxy
+                    var cmd = serialIn.Read();
+                    if (cmd.Length == 0) continue;
 
-                WriteR(fileStream, span[..span[ilen]]);
+                    WriteR(fileStream, cmd);
 
-                // PFC -> Soft
-                serialOut.Read(buffer, 0, 2);
-                serialOut.Read(buffer, 2, buffer[ilen] - 1);
+                    // Proxy -> PFC
+                    serialOut.DiscardInBuffer();
+                    serialOut.Write(cmd, 0, cmd.Length);
+                    //await Task.Delay(100);
 
-                serialIn.DiscardInBuffer();
-                serialIn.Write(buffer, 0, buffer[ilen] + 1);
+                    // PFC -> Proxy
+                    var res = serialOut.Read(true);
+                    if (res.Length == 0) continue;
 
-                WriteW(fileStream, span[..span[ilen]]);
+                    // Proxy -> Soft/Commander
+                    WriteW(fileStream, res);
+                    serialIn.DiscardInBuffer();
+                    serialIn.Write(res, 0, res.Length);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+            finally
+            {
             }
         }
-        catch (Exception e)
-        {
-            Console.WriteLine(e);
-        }
-        finally
-        {
-            using (fileStream) { }
-            serialIn.Close();
-            serialOut.Close();
-        }
     }
 
-    void WriteR(FileStream sm, Span<byte> data)
-    {
-        var tmp = data.ToArray();
-        var txt = $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] R:{BitConverter.ToString(tmp)}\n";
-        Console.Write(txt);
-        sm.Write(txt);
-    }
-    void WriteW(FileStream sm, Span<byte> data)
-    {
-        var tmp = data.ToArray();
-        var txt = $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] W:{BitConverter.ToString(tmp)}\n";
-        Console.Write(txt);
-        sm.Write(txt);
-    }
+}
+
+void WriteR(FileStream sm, ReadOnlySpan<byte> data)
+{
+    var tmp = data.ToArray();
+    var txt = $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] R:{BitConverter.ToString(tmp)}\n";
+    Console.Write(txt);
+    sm.Write(txt);
+}
+void WriteW(FileStream sm, ReadOnlySpan<byte> data)
+{
+    var tmp = data.ToArray();
+    var txt = $"[{DateTime.Now.ToString("HH:mm:ss.fff")}] W:{BitConverter.ToString(tmp)}\n";
+    Console.Write(txt);
+    sm.Write(txt);
 }

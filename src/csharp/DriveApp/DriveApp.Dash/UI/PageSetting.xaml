@@ -8,26 +8,44 @@
       d:DesignHeight="450" d:DesignWidth="800"
       Title="PageSetting">
     <StackPanel>
-        <StackPanel Orientation="Horizontal">
+        <StackPanel>
             <Label Content="SETTING" FontSize="30"></Label>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Margin="20,0,0,0">
-            <Label Content="PFC:" FontSize="24"></Label>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Margin="40,0,0,0">
-            <Label Content="PORT:" VerticalAlignment="Center" FontSize="20"></Label>
-            <TextBox Width="30" VerticalAlignment="Center" FontSize="20" ></TextBox>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Margin="20,0,0,0">
-            <Label Content="GPS:"  FontSize="24" VerticalAlignment="Center"></Label>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Margin="40,0,0,0">
-            <Label Content="USE:" HorizontalAlignment="Center" FontSize="20"></Label>
-            <CheckBox VerticalAlignment="Center" FontSize="20"></CheckBox>
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Margin="40,0,0,0">
-            <Label Content="PORT:" VerticalAlignment="Center" FontSize="20"></Label>
-            <TextBox Width="30" VerticalAlignment="Center"  FontSize="20"></TextBox>
+            <StackPanel Margin="20,0,0,0">
+                <Label Content="PFC:" FontSize="24"></Label>
+                <StackPanel Orientation="Horizontal" Margin="40,0,0,0">
+                    <Label Content="PORT:" VerticalAlignment="Center" FontSize="20"></Label>
+                    <TextBox Width="30" VerticalAlignment="Center" FontSize="20" ></TextBox>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Margin="20,0,0,0">
+                <Label Content="GPS:"  FontSize="24" VerticalAlignment="Center"></Label>
+                <StackPanel Orientation="Horizontal" Margin="40,0,0,0">
+                    <Label Content="USE:" HorizontalAlignment="Center" FontSize="20"></Label>
+                    <CheckBox VerticalAlignment="Center" FontSize="20"></CheckBox>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="40,0,0,0">
+                    <Label Content="PORT:" VerticalAlignment="Center" FontSize="20"></Label>
+                    <TextBox Width="30" VerticalAlignment="Center"  FontSize="20"></TextBox>
+                </StackPanel>
+            </StackPanel>
+            <StackPanel Margin="20,0,0,0">
+                <Label Content="Warnning:"  FontSize="24" VerticalAlignment="Center"></Label>
+                <WrapPanel Margin="40,0,0,0">
+                    
+                    <Label Content="PPM:" VerticalAlignment="Center" FontSize="20"></Label>
+                    <TextBox Width="150" VerticalAlignment="Center"  FontSize="20" Margin="0,0,30,0"></TextBox>
+                    <Label Content="Knocking:" VerticalAlignment="Center" FontSize="20"></Label>
+                    <TextBox Width="80" VerticalAlignment="Center"  FontSize="20" Margin="0,0,30,0"></TextBox>
+                    <Label Content="Boost:" VerticalAlignment="Center" FontSize="20"></Label>
+                    <TextBox Width="80" VerticalAlignment="Center"  FontSize="20" Margin="0,0,50,0"></TextBox>
+                    <Label Content="WaterTemp:" VerticalAlignment="Center" FontSize="20"></Label>
+                    <TextBox Width="80" VerticalAlignment="Center"  FontSize="20" Margin="0,0,30,0"></TextBox>
+                    <Label Content="AirTemp:" VerticalAlignment="Center" FontSize="20"></Label>
+                    <TextBox Width="80" VerticalAlignment="Center"  FontSize="20" Margin="0,0,30,0"></TextBox>
+                    <Label Content="FuelTemp:" VerticalAlignment="Center" FontSize="20"></Label>
+                    <TextBox Width="80" VerticalAlignment="Center"  FontSize="20" Margin="0,0,30,0"></TextBox>
+                </WrapPanel>
+            </StackPanel>
         </StackPanel>
     </StackPanel>
 </Page>

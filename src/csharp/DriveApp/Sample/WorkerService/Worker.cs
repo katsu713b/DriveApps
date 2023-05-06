@@ -59,7 +59,7 @@ namespace WorkerService
             }
             return false;
         }
-        private FileStream _writer;
+        private FileStream? _writer;
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {

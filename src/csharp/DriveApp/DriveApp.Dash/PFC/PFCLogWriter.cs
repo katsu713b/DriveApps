@@ -2,24 +2,51 @@
 using PFC;
 using System.IO;
 using System.Runtime.Caching;
+using System.Text;
+using System.Text.Unicode;
 
 namespace DriveApp.Dash.PFC;
+
+public enum OperationType: byte
+{
+    FromPFC = 0,
+    ToPFC,
+    //FromCOMM,
+    //ToCOMM,
+
+}
 
 public class PFCLogWriter : IDisposable
 {
     private readonly WriterOptions _writerOptions;
+    private Lazy<FileStream> _operationLog = new Lazy<FileStream>(() =>
+    {
+        var dateStr = DateTime.Now.ToString("yyyy-MM-dd");
+        var file = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @$"logs\pfclog_operation_{dateStr}.log");
+        return new FileStream(file, FileMode.Append, FileAccess.Write, FileShare.Read);
+    }, true);
 
     public PFCLogWriter(IOptionsMonitor<WriterOptions> options)
     {
         _writerOptions = options.CurrentValue;
     }
 
-    public void WriteToFile(AdvancedData data)
+    public void WriteLogger(AdvancedData data)
     {
         var sm = GetOrCreateFileStream(DateTimeOffset.Now.ToUnixTimeMilliseconds());
 
-        var dataBytes = data.ToBytes();
-        sm.Write(dataBytes);
+        sm.Write(data.ToBytes());
+    }
+    
+    public void WriteOperationLog(ReadOnlySpan<byte> data, OperationType ope)
+    {
+        if (data[0] == AdvancedData.Command[0]) return;
+        if (data[0] == BasicData.Command[0]) return;
+        if (data[0] == SensorData.Command[0]) return;
+        var operation = ope.ToString();
+        var txt = Encoding.UTF8.GetBytes($"[{DateTime.Now.ToString("HH:mm:ss.fff")}] {operation}:{BitConverter.ToString(data.ToArray())}\n");
+        _operationLog.Value.Write(txt);
+        _operationLog.Value.Flush(true);
     }
 
     private FileStream GetOrCreateFileStream(long unixTimeMs)
@@ -62,6 +89,8 @@ public class PFCLogWriter : IDisposable
         {
             using (sm) { }
         }
+
+        using (_operationLog.Value) { }
     }
 }
 

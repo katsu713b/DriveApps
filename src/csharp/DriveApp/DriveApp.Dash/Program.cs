@@ -3,6 +3,7 @@ using DriveApp.Dash.PFC;
 using DriveApp.Dash.UI;
 using System;
 using System.IO;
+using Wpf.Extensions.Hosting;
 
 if (Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == null)
 {
@@ -11,12 +12,13 @@ if (Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") == null)
 
 
 // Create a builder by specifying the application and main window.
-var builder = WpfApplication<App, MainWindow>.CreateBuilder(args);
+//var builder = WpfApplication<App, MainWindow>.CreateBuilder(args);
+var builder = WpfApplication<App, DashWindow>.CreateBuilder(args);
 
 builder.Host
     .ConfigureServices((context, services) =>
     {
-        services.AddSingleton<DashWindow>();
+        //services.AddSingleton<DashWindow>();
         services.AddSingleton<PFCLogWriter>();
         services.AddSingleton<PFCContext>();
         services.AddHostedService<PFCProvider>();

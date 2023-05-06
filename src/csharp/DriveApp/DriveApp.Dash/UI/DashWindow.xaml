@@ -5,14 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DriveApp.Dash.UI"
         mc:Ignorable="d"
-        Title="DashWindow" Height="600" Width="1024" WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterScreen"
-        IsHitTestVisible="True" Background="Black">
+        Title="DashWindow" Height="600" Width="1024" WindowStyle="None" ResizeMode="NoResize"
+        IsHitTestVisible="True" Background="Black" WindowStartupLocation="CenterScreen">
     <Window.DataContext>
         <local:DashWindowVM/>
     </Window.DataContext>
     <Window.Resources>
         <Style TargetType="Label">
-            <Setter Property="Background" Value="#FF252525"/>
+            <Setter Property="Background" Value="Black"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="FontFamily" Value="Arial Black"/>
             <Setter Property="FontSize" Value="20"/>
@@ -94,6 +94,9 @@
     </Window.Resources>
     <DockPanel LastChildFill="True" Name="DockP">
         <Grid DockPanel.Dock="Top" Height="96">
+            <TextBlock Text="PFC" FontSize="14" Margin="20,20,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="{Binding ConnectedPFC}" />
+            <TextBlock Text="CMD" FontSize="14" Margin="20,40,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" Visibility="{Binding ConnectedCMD}"/>
+            <TextBlock Text="{Binding FPS}" FontSize="14" Margin="20,60,0,0" HorizontalAlignment="Left" VerticalAlignment="Top" />
             <!--
                 bar   0000-8000
                 red   7250-7350
@@ -149,8 +152,10 @@
         <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Height="128" Panel.ZIndex="6">
             <Border Style="{StaticResource SmallMonitor}" Width="180">
                 <Grid>
-                    <Label Content="BAT" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
-                    <TextBlock Text="{Binding BattVoltage}" HorizontalAlignment="Center" MinHeight="64" FontSize="48" VerticalAlignment="Center"/>
+                    <Label Content="INJ Duty" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
+                    <TextBlock Text="{Binding INJDuty}" HorizontalAlignment="Right" MinHeight="64" FontSize="48" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <Label Content="BAT" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0" Visibility="Collapsed"/>
+                    <TextBlock Text="{Binding BattVoltage}" HorizontalAlignment="Center" MinHeight="64" FontSize="48" VerticalAlignment="Center"  Visibility="Collapsed"/>
                 </Grid>
             </Border>
             <Border Style="{StaticResource SmallMonitor}">
@@ -186,7 +191,7 @@
             <Border Style="{StaticResource SmallMonitor}">
                 <Grid>
                     <Label Content="IGN Tr" Margin="0,-16,0,0" HorizontalAlignment="Center" Padding="5,0,5,0"/>
-                    <TextBlock Text="{Binding IGNAngleTr}" HorizontalAlignment="Center" MinHeight="64" FontSize="48" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding IGNAngleTr}" HorizontalAlignment="Center" MinHeight="64" FontSize="48" VerticalAlignment="Center" />
                 </Grid>
             </Border>
         </StackPanel>

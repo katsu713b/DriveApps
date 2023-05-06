@@ -2,7 +2,7 @@
 using System.Text;
 
 Console.WriteLine("使用するシリアルポートのポート番号[3]：");
-string comNoStr = string.Empty;
+string? comNoStr = string.Empty;
 int comNo = 0;
 
 while (!int.TryParse((comNoStr = Console.ReadLine()), out comNo))
@@ -16,7 +16,7 @@ while (!int.TryParse((comNoStr = Console.ReadLine()), out comNo))
     Console.WriteLine("使用するシリアルポートのポート番号：");
 }
 
-string delayMsStr = string.Empty;
+string? delayMsStr = string.Empty;
 int delayMs = 100;
 
 Console.WriteLine("DelayMs[100]：");
@@ -74,13 +74,14 @@ using (SerialPort serialPort = new SerialPort(com, 19200, Parity.Even, 8, StopBi
         try
         {
             {
+                serialPort.DiscardOutBuffer();
+                serialPort.DiscardInBuffer();
+
                 serialPort.Write(init, 0, cmd.Length);
 
                 byte[] receive = new byte[11];
 
 
-                serialPort.DiscardOutBuffer();
-                serialPort.DiscardInBuffer();
 
                 serialPort.Read(receive, 0, receive.Length);
 

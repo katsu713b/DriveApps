@@ -10,8 +10,9 @@ public class PFCOption
 {
     public const string Section = "PFC";
 
-    public PortOptions PFCPort { get; set; }
-    public PortOptions CommanderPort { get; set; }
+    public PortOptions PFCPort { get; set; } = new PortOptions();
+    public PortOptions CommanderPort { get; set; } = new PortOptions();
+    public int InterruptWaitPollingMs { get; set; } = 200;
 }
 
 public class PortOptions

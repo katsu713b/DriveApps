@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DriveApp.Dash.UI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="1024" WindowStyle="None" ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+        Title="MainWindow" Height="600" Width="1024" WindowStyle="None" ResizeMode="NoResize">
     <Window.DataContext>
         <local:MainWindowVM/>
     </Window.DataContext>

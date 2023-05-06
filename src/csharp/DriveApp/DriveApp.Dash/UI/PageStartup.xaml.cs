@@ -10,7 +10,7 @@ namespace DriveApp.Dash.UI
     /// </summary>
     public partial class PageStartup : Page
     {
-        DispatcherTimer _timer;
+        //DispatcherTimer _timer;
         public PageStartup()
         {
             InitializeComponent();
@@ -24,7 +24,7 @@ namespace DriveApp.Dash.UI
 
         private void _timer_Tick(object? sender, EventArgs e)
         {
-            _timer.Stop();
+            //_timer.Stop();
             NavigationService.Navigate(new PageSetting());
         }
 

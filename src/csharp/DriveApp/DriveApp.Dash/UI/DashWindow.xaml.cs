@@ -31,6 +31,10 @@ public partial class DashWindow : Window
     // 1 mmHg = 0.00131579 kg/cm2
     // kPa = kg/cm2 x 9.80665
 
+    private Stopwatch _stopwatch = new Stopwatch();
+    private TimeSpan _startFps = TimeSpan.Zero;
+    private int _fps = 0;
+
     public DashWindow(PFCContext pFCContext)
     {
         _pFCContext = pFCContext;
@@ -40,55 +44,44 @@ public partial class DashWindow : Window
         _dataContext = (DashWindowVM)this.DataContext;
 
         _timer = new DispatcherTimer(DispatcherPriority.Normal);
-        _timer.Interval = TimeSpan.FromMilliseconds(15);
+        _timer.Interval = TimeSpan.FromMilliseconds(20);
         _timer.Tick += _timer_Tick;
 
-        Loaded += (sender, e) => _timer.Start();
+        Loaded += (sender, e) =>
+        {
+            _stopwatch.Start();
+            _timer.Start();
+        };
         Closing += (sender, e) =>
         {
             _timer.Stop();
         };
 
-        /*
-        
-                    <Rectangle.Triggers>
-                        <EventTrigger RoutedEvent="Rectangle.Loaded">
-                            <BeginStoryboard>
-                                <Storyboard Name="mySb">
-                                    <DoubleAnimationUsingKeyFrames Name="dani" Storyboard.TargetProperty="Opacity" Duration="0:0:0.20" RepeatBehavior="Forever" AutoReverse="False" >
-                                        <DiscreteDoubleKeyFrame KeyTime = "0:0:0" Value = "1" ></DiscreteDoubleKeyFrame>
-                                        <DiscreteDoubleKeyFrame KeyTime = "0:0:0.10" Value = "0" ></DiscreteDoubleKeyFrame>
-                                    </DoubleAnimationUsingKeyFrames>
-                                </Storyboard>
-                            </BeginStoryboard>
-                        </EventTrigger>
-                    </Rectangle.Triggers>
-        */
-
-        //var ani = new DoubleAnimationUsingKeyFrames();
-
-        //ani.Duration = new TimeSpan(0, 0, 0, 0, 200);
-        //ani.KeyFrames.Add(new DiscreteDoubleKeyFrame(1, new TimeSpan(0, 0, 0)));
-        //ani.KeyFrames.Add(new DiscreteDoubleKeyFrame(0, new TimeSpan(0, 0, 0, 0, 100)));
-        //ani.RepeatBehavior = RepeatBehavior.Forever;
-        //ani.AutoReverse = false;
-
-        //this.RegisterName(rctRpmWarn.Name, rctRpmWarn);
-        //Storyboard.SetTargetName(ani, rctRpmWarn.Name);
-        //Storyboard.SetTargetProperty(ani, new PropertyPath(UIElement.OpacityProperty));
-        //myStoryboard = new Storyboard();
-        //myStoryboard.Children.Add(ani);
-        //myStoryboard.Begin(this, true);
-        //myStoryboard.Pause(this);
-
         _alertProvider = new WarningProvider(this);
+        this.Closing += DashWindow_Closing;
     }
 
+    private void DashWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        using (_pFCContext) { }
+
+        Application.Current.Shutdown();
+    }
 
     private long _lastReceivedTime = 0;
 
     private void _timer_Tick(object? sender, EventArgs e)
     {
+        if ((_stopwatch.Elapsed - _startFps).TotalMilliseconds > 1000)
+        {
+            _dataContext.FPS = _fps.ToString();
+            _fps = 0;
+            _startFps = _stopwatch.Elapsed;
+            _dataContext.UpdateNow();
+        }
+
+        _fps++;
+
         var data = _pFCContext.LatestAdvancedData;
 
         if (data == null) return;
@@ -163,7 +156,7 @@ public partial class DashWindow : Window
             const int positiveBarWidth = 220;
             const int negativeBarWidth = 100;
 
-            var boost = data.AirIPressure * 0.980665;
+            var boost = data.AirIPressure * 0.980665; // 100KPa
             
             // Boost Bar
             //   positive  0.0 - 1.3(= 1.0 - 2.3)
@@ -193,6 +186,8 @@ public partial class DashWindow : Window
             _dataContext.Boost = (boost - 1).ToString("F2");
         }
 
+        _dataContext.INJDuty = data.GetInjectorPrDuty().ToString("F1");
+
         _dataContext.Speed = data.Speed.ToString();
 
         _dataContext.FuelCorrection = data.FuelCorrection.ToString("F3");
@@ -204,9 +199,12 @@ public partial class DashWindow : Window
         _dataContext.WaterTemp = data.WaterTemp.ToString();
         _dataContext.FuelTemp = data.FuelTemp.ToString();
         _dataContext.BattVoltage = data.BattVoltage.ToString("F1");
-            
-        _dataContext.UpdateNow();
+        
+        _dataContext.ConnectedPFC = _pFCContext.IsPFCConnected ? Visibility.Visible: Visibility.Hidden;
+        _dataContext.ConnectedCMD = _pFCContext.IsCommanderConnected ? Visibility.Visible : Visibility.Hidden;
+
     }
+
 
     private class WarningProvider
     {
@@ -214,9 +212,9 @@ public partial class DashWindow : Window
         private Storyboard _mainWarn;
         private Storyboard _rpmWarn;
 
-        private const string ColorAlert = "#FF0000FF";
+        private const string ColorAlert =   "#FF0000FF";
         private const string ColorCaution = "#FFFF0000";
-        private const string ColorNormal = "#0000000";
+        private const string ColorNormal = "#00000000";
 
         private static readonly TimeSpan _KnockMainWarnTime = TimeSpan.FromSeconds(5);
         private static readonly TimeSpan _BoostCautionTime = TimeSpan.FromSeconds(3);
@@ -341,6 +339,26 @@ public class DashWindowVM : ViewModelBase
         set { if (_NowSec != value) { _NowSec = value; RaisePropertyChanged(); } }
     }
 
+    private Visibility _ConnectedPFC = Visibility.Hidden;
+    public Visibility ConnectedPFC
+    {
+        get => _ConnectedPFC;
+        set { if (_ConnectedPFC != value) { _ConnectedPFC = value; RaisePropertyChanged(); } }
+    }
+    private Visibility _ConnectedCMD = Visibility.Hidden;
+    public Visibility ConnectedCMD
+    {
+        get => _ConnectedCMD;
+        set { if (_ConnectedCMD != value) { _ConnectedCMD = value; RaisePropertyChanged(); } }
+    }
+
+    private string _fps = "0";
+    public string FPS
+    {
+        get => _fps;
+        set { if (_fps != value) { _fps = value; RaisePropertyChanged(); } }
+    }
+
     private string _MainBackGColor = _normalColor;
     public string MainBackGColor
     {
@@ -350,19 +368,19 @@ public class DashWindowVM : ViewModelBase
 
     #region Values
 
-    private string _AirTemp = "80";
+    private string _AirTemp = "0";
     public string AirTemp
     {
         get => _AirTemp;
         set { if (_AirTemp != value) { _AirTemp = value; RaisePropertyChanged(); } }
     }
-    private string _BattVoltage = "13.4";
+    private string _BattVoltage = "0.0";
     public string BattVoltage
     {
         get => _BattVoltage;
         set { if (_BattVoltage != value) { _BattVoltage = value; RaisePropertyChanged(); } }
     }
-    private string _Boost = "-0.50";
+    private string _Boost = "0.00";
     public string Boost
     {
         get => _Boost;
@@ -374,7 +392,7 @@ public class DashWindowVM : ViewModelBase
         get => _FuelCorrection;
         set { if (_FuelCorrection != value) { _FuelCorrection = value; RaisePropertyChanged(); } }
     }
-    private string _FuelTemp = "80";
+    private string _FuelTemp = "0";
     public string FuelTemp
     {
         get => _FuelTemp;
@@ -392,19 +410,19 @@ public class DashWindowVM : ViewModelBase
         get => _IGNAngleTr;
         set { if (_IGNAngleTr != value) { _IGNAngleTr = value; RaisePropertyChanged(); } }
     }
-    private string _KnockLevel = "80";
+    private string _KnockLevel = "0";
     public string KnockLevel
     {
         get => _KnockLevel;
         set { if (_KnockLevel != value) { _KnockLevel = value; RaisePropertyChanged(); } }
     }
-    private string _MapSensorVoltage;
+    private string _MapSensorVoltage = string.Empty;
     public string MapSensorVoltage
     {
         get => _MapSensorVoltage;
         set { if (_MapSensorVoltage != value) { _MapSensorVoltage = value; RaisePropertyChanged(); } }
     }
-    private string _RpmTop = "75";
+    private string _RpmTop = "0";
     public string RpmTop
     {
         get => _RpmTop;
@@ -416,23 +434,30 @@ public class DashWindowVM : ViewModelBase
         get => _RpmUnder;
         set { if (_RpmUnder != value) { _RpmUnder = value; RaisePropertyChanged(); } }
     }
-    private string _Speed = "300";
+    private string _Speed = "0";
     public string Speed
     {
         get => _Speed;
         set { if (_Speed != value) { _Speed = value; RaisePropertyChanged(); } }
     }
-    private string _ThrottleSensorVoltage;
+    private string _ThrottleSensorVoltage = "0.0";
     public string ThrottleSensorVoltage
     {
         get => _ThrottleSensorVoltage;
         set { if (_ThrottleSensorVoltage != value) { _ThrottleSensorVoltage = value; RaisePropertyChanged(); } }
     }
-    private string _WaterTemp = "80";
+    private string _WaterTemp = "0";
     public string WaterTemp
     {
         get => _WaterTemp;
         set { if (_WaterTemp != value) {_WaterTemp = value; RaisePropertyChanged(); }}
+    }
+
+    private string _INJDuty = "0.0";
+    public string INJDuty
+    {
+        get => _INJDuty;
+        set { if (_INJDuty != value) { _INJDuty = value; RaisePropertyChanged(); } }
     }
     #endregion
 

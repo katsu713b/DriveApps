@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Options;
 using PFC;
-using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Ports;
+using Microsoft.Extensions.Hosting;
+using System.Runtime.CompilerServices;
+using System.Windows.Documents;
 
 namespace DriveApp.Dash.PFC;
 
@@ -14,144 +16,317 @@ namespace DriveApp.Dash.PFC;
 /// </summary>
 public class PFCProvider : BackgroundService
 {
-    private readonly PFCOption _pFCOptions;
-    private SerialPort _serialPort;
-    private PFCLogWriter _writer;
-    private Queue<AdvancedData> _queueDatas = new Queue<AdvancedData>();
-    private readonly PFCContext _pFCContext;
-    private Stopwatch _sw = new Stopwatch();
-    private static object _lock = new object();
-    private ConcurrentQueue<int> _queueInterruptWait = new ConcurrentQueue<int>();
+    readonly PFCOption _pFCOptions;
+    SerialPort _serialPort;
+    readonly PFCLogWriter _writer;
+    Queue<AdvancedData> _queueDatas = new Queue<AdvancedData>();
+    readonly PFCContext _pFCContext;
+    Stopwatch _sw = new Stopwatch();
+    static object _lock = new object();
+    static readonly AsyncLock asynclock = new AsyncLock();
+    ConcurrentQueue<int> _queueInterruptWait = new ConcurrentQueue<int>();
+    TimeSpan _startTime = TimeSpan.Zero;
+    TimeSpan _endTime = TimeSpan.Zero;
 
-    public PFCProvider(IOptionsMonitor<PFCOption> options, PFCLogWriter writer, PFCContext context)
+
+    public PFCProvider(IOptionsMonitor<PFCOption> options, PFCContext context, PFCLogWriter writer)
     {
         _pFCOptions = options.CurrentValue;
         _writer = writer;
         _pFCContext = context;
         _pFCContext.OnInterruptWrite += PFCContext_OnInterruptWrite;
+        _pFCContext.OnApplicationShutDown += _pFCContext_OnApplicationShutDown;
+        _serialPort = new SerialPort();
     }
-    
-    TimeSpan _startTime = TimeSpan.MinValue;
-    TimeSpan _endTime = TimeSpan.MinValue;
+
+    private void _pFCContext_OnApplicationShutDown()
+    {
+        if (_serialPort.IsOpen)
+            _serialPort.Close();
+
+        using (_serialPort) { }
+        using (_writer) { }
+    }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
+        /*
+         PFC未接続 <-> 接続
+         CMD未接続 <-> 接続
+         
+        while
+        {
+          PFC未接続 continue;
+          
+          CMD情報取得
+
+          while
+          {
+            割り込み break;
+            PFC切断 break;
+
+            polling / 100ms
+          }
+        }
+        
+         */
+
         var logpath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
         if (!Directory.Exists(logpath)) Directory.CreateDirectory(logpath);
 
-        if (string.IsNullOrEmpty(_pFCOptions.PFCPort.Name)) throw new ArgumentNullException(nameof(PFCOption.PFCPort.Name));
-        if (!SerialPort.GetPortNames().Contains(_pFCOptions.PFCPort.Name)) throw new ArgumentException($"Not Found Port:{_pFCOptions.PFCPort.Name}");
-
-        _serialPort = new SerialPort(_pFCOptions.PFCPort.Name, 19200, Parity.Even, 8, StopBits.One);
-        
-        _serialPort.ReadTimeout = _pFCOptions.PFCPort.ReadTimeout;
-        _serialPort.WriteTimeout = _pFCOptions.PFCPort.WriteTimeout;
         _sw.Start();
         _endTime = _sw.Elapsed;
 
-        await Task.Delay(800);
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await ConnectPFC();
 
-        _serialPort.Open();
+                // Commander情報取得
+                // TODO: json file
+                await GetCommanderInfo(ct);
+
+                await Task.Delay(500);
+
+                await Initial(ct);
+
+                _pFCContext.IsPFCConnected = true;
+                _pFCContext.StartPolling = true;
+
+                await PollingAdvanceDataAsync(ct);
+            }
+            catch
+            {
+                // port error
+                _pFCContext.IsPFCConnected = false;
+                await Task.Delay(1000, ct);
+            }
+            finally
+            {
+                _pFCContext.StartPolling = false;
+            }
+        }
+
+        async Task ConnectPFC()
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                // TODO: message
+                if (string.IsNullOrEmpty(_pFCOptions.PFCPort.Name))
+                {
+                    await Task.Delay(1000, ct);
+                    continue;
+                }
+
+                // TODO: message
+                if (!SerialPort.GetPortNames().Contains(_pFCOptions.PFCPort.Name))
+                {
+                    await Task.Delay(1000, ct);
+                    continue;
+                }
+                break;
+            }
+
+            if (!_serialPort.IsOpen)
+            {
+                _serialPort.SetUpPFC(_pFCOptions.PFCPort.Name, _pFCOptions.PFCPort.ReadTimeout, _pFCOptions.PFCPort.WriteTimeout);
+                _serialPort.Open();
+            }
+        }
+    }
+
+    private static readonly byte[][] COMMANDER_CMD = new byte[][]
+    {
+        new byte[] { 0xD7, 0x2, 0x26 },
+        new byte[] { 0xD8, 0x2, 0x25 },
+        new byte[] { 0xD9, 0x2, 0x24 },
+        new byte[] { 0xCA, 0x2, 0x33 },
+        new byte[] { 0xF3, 0x2, 0x0A },
+        new byte[] { 0xF5, 0x2, 0x08 }
+    };
+
+    private async Task GetCommanderInfo(CancellationToken ct)
+    {
+        using (await asynclock.LockAsync())
+        {
+            foreach (var cmd in COMMANDER_CMD)
+            {
+                for (var i = 0; i < 3; i++)
+                {
+                    if (ct.IsCancellationRequested) return;
+
+                    var res = WriteAndReadData(cmd);
+                    if (res.Length == 0)
+                    {
+                        await Task.Delay(300, ct);
+                        continue;
+                    }
+                    _pFCContext.CommanderInfo[BitConverter.ToString(cmd)] = res;
+                    break;
+                }
+                // TODO: 不要なはず
+                await Task.Delay(50);
+            }
+        }
+    }
+
+    private static readonly byte[][] INITIAL_CMD = new byte[][]
+    {
+        new byte[] { 0xF3, 0x2, 0x0A },
+        new byte[] { 0xF4, 0x2, 0x9 },
+        new byte[] { 0xF5, 0x2, 0x8 }
+    };
+
+    private async Task Initial(CancellationToken ct)
+    {
+        using (await asynclock.LockAsync())
+        {
+            foreach (var cmd in INITIAL_CMD)
+            {
+                for (var i = 0; i < 3; i++)
+                {
+                    if (ct.IsCancellationRequested) return;
+
+                    var res = WriteAndReadData(cmd);
+                    if (res.Length == 0)
+                    {
+                        await Task.Delay(300, ct);
+                        continue;
+                    }
+                    break;
+                }
+                // TODO: 不要なはず
+                await Task.Delay(50);
+            }
+        }
+    }
+
+    private static readonly byte[] EmptyData = Enumerable.Empty<byte>().ToArray();
+
+    private byte[] WriteAndReadData(byte[] cmd, int retryCount = 2)
+    {
         _serialPort.DiscardOutBuffer();
         _serialPort.DiscardInBuffer();
 
-        int waitMinValue = (int)(_pFCOptions.PFCPort.PFCInterval * 0.9);
+        _writer.WriteOperationLog(cmd, OperationType.ToPFC);
+        var successWrite = WriteCmd();
+        if (!successWrite)
+            return EmptyData;
+        var res = _serialPort.Read();
+        if (res.Length > 0)
+            _writer.WriteOperationLog(cmd, OperationType.FromPFC);
 
-        while (!ct.IsCancellationRequested && _serialPort.IsOpen)
+        return res;
+
+        bool WriteCmd()
         {
-            int waitMs = 0;
-
-            while (_queueInterruptWait.TryDequeue(out var qwait))
+            for (int i = 0; i < retryCount + 1; i++)
             {
-                await Task.Delay(qwait);
+                try
+                {
+                    _serialPort.Write(cmd, 0, cmd.Length);
+                    return true;
+                }
+                catch
+                {
+                }
+            }
+            return false;
+        }
+    }
+
+    private async Task PollingAdvanceDataAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            if (!_pFCContext.StartPolling)
+            {
+                await Task.Delay(100);
+                continue;
             }
 
-            lock (_lock)
+            if (_pFCContext.LatestAdvancedData == null || _pFCContext.LatestAdvancedData.Rpm < 500)
             {
-                var elapsedLast = ElapsedFromLast;
+                await Task.Delay(1000);
+            }
 
-                if (elapsedLast < waitMinValue)
+            using (await asynclock.LockAsync())
+            {
+                if (!_pFCContext.StartPolling)
                 {
-                    Thread.Sleep(_pFCOptions.PFCPort.PFCInterval - elapsedLast);
+                    continue;
                 }
+
+                var waitMs = Math.Max(_pFCOptions.PFCPort.PFCInterval - (int)((_endTime - _startTime).TotalMilliseconds + 0.5), 15);
+                await Task.Delay(waitMs, ct);
+
+                if (ct.IsCancellationRequested) return;
 
                 _startTime = _sw.Elapsed;
 
-                var data = RequestAndReceiveData();
-                if (data.IsValid)
-                {
-                    _pFCContext.LatestAdvancedData = data;
-                    _writer.WriteToFile(data);
+                var res = WriteAndReadData(AdvancedData.Command);
 
-                    _queueDatas.EnqueueLifeTime(data);
-                    var (max, min) = _queueDatas.GetMaxMinValuesData();
+                if (res.Length == 0)
+                {
+                    _endTime = _sw.Elapsed;
+                    continue;
                 }
 
+                var adata = new AdvancedData(DateTimeOffset.Now.ToUnixTimeMilliseconds(), res);
+
+                if (adata.IsValid)
+                {
+                    _pFCContext.LatestAdvancedData = adata;
+                    _writer.WriteLogger(adata);
+
+                    //_queueDatas.EnqueueLifeTime(data);
+                    //var (max, min) = _queueDatas.GetMaxMinValuesData();
+                }
+
+                _pFCContext.IsPFCConnected = true;
                 _endTime = _sw.Elapsed;
-
-                //var fuelc = data.FuelCorrection;
-
-                waitMs = Math.Max(_pFCOptions.PFCPort.PFCInterval - (int)((_endTime - _startTime).TotalMilliseconds + 0.5), 15);
-                //await Task.Delay(_pFCOptions.PFCPort.PFCInterval, stoppingToken);
             }
-            await Task.Delay(waitMs, ct);
         }
     }
+
     private int ElapsedFromLast => (int)(_sw.Elapsed - _endTime).TotalMilliseconds;
 
-    private byte[] PFCContext_OnInterruptWrite(byte[] data)
+    private async Task<byte[]> PFCContext_OnInterruptWrite(byte[] cmd)
     {
-        const int iLen = 1;
-        lock (_lock)
+        // センサーデータ取得時はポーリング中断
+        //_pFCContext.StartPolling = !(cmd[0] == SensorData.Command[0]);
+        using (await asynclock.LockAsync())
         {
-            var isSensorPolling = data.SequenceEqual(SensorData.Command);
-            if (isSensorPolling)
+            // センサーデータ取得時はポーリング中断
+            //_pFCContext.StartPolling = !(cmd[0] == SensorData.Command[0]);
+
+            // コマンダー起動
+            var cmdTxt = BitConverter.ToString(cmd);
+            if (_pFCContext.CommanderInfo.TryGetValue(cmdTxt, out var cmdInfo))
             {
-                _queueInterruptWait.Enqueue(_pFCOptions.PFCPort.PFCInterval);
+                _pFCContext.CommanderInfo.Remove(cmdTxt);
+                return cmdInfo;
             }
 
-            if (ElapsedFromLast < 50)
-            {
-                Thread.Sleep(50);
-            }
+            //var delay = 50 - Math.Max(0, ElapsedFromLast);
+            //if (delay > 0)
+            //    await Task.Delay(delay);
 
-            if (isSensorPolling)
-                _startTime = _sw.Elapsed;
+            _startTime = _sw.Elapsed;
 
-            byte[] buffer = new byte[256];
-
-            _serialPort.DiscardInBuffer();
-            _serialPort.Write(data, 0, data.Length);
-
-            _serialPort.Read(buffer, 0, 2);
-            _serialPort.Read(buffer, 2, buffer[iLen] - 1);
-
-            Span<byte> span = buffer;
-            var dataLen = span[iLen] + 1;
+            var res = WriteAndReadData(cmd, 0);
             
-            if (isSensorPolling)
-                _endTime = _sw.Elapsed;
+            _endTime = _sw.Elapsed;
 
-            return span[..dataLen].ToArray();
+            return res;
         }
     }
 
-    private AdvancedData RequestAndReceiveData()
-    {
-        _serialPort.DiscardInBuffer();
-        _serialPort.Write(AdvancedData.Command, 0, AdvancedData.Command.Length);
-        var now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-
-
-        byte[] buff = new byte[AdvancedData.RawDataLength];
-        _serialPort.Read(buff, 0, AdvancedData.RawDataLength);
-
-        return new AdvancedData(now, buff);
-    }
-
-    public void Dispose()
+    public override void Dispose()
     {
         Terminate();
+        base.Dispose();
     }
 
     private void Terminate()
@@ -194,7 +369,7 @@ record AdvancedDataValues(int AirTemp, float BattVoltage, float Boost, float Boo
 
 file static class QueueExtensions
 {
-    private const int _lifeTimeMs = 3000;
+    private const int _lifeTimeMs = 3 * 60 * 1000;
 
     public static void EnqueueLifeTime(this Queue<AdvancedData> queue, AdvancedData item)
     {
@@ -271,5 +446,40 @@ file static class QueueExtensions
             minInjectorWidthPrimary, minInjectorWidthSecondary, minISCVDuty, minKnockLevel, minMapSensorVoltage, minMOPPosition, minO2Voltage, minRpm, minSpeed,
             minThrottleSensorVoltage, minWaterTemp);
         return (max, min);
+    }
+}
+
+/// <summary>
+/// async な文脈での lock を提供します．
+/// Lock 開放のために，必ず処理の完了後に LockAsync が生成した IDisposable を Dispose してください．
+/// </summary>
+public sealed class AsyncLock
+{
+    private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+
+    public async Task<IDisposable> LockAsync()
+    {
+        await _semaphore.WaitAsync();
+        return new Handler(_semaphore);
+    }
+
+    private sealed class Handler : IDisposable
+    {
+        private readonly SemaphoreSlim _semaphore;
+        private bool _disposed = false;
+
+        public Handler(SemaphoreSlim semaphore)
+        {
+            _semaphore = semaphore;
+        }
+
+        public void Dispose()
+        {
+            if (!_disposed)
+            {
+                _semaphore.Release();
+                _disposed = true;
+            }
+        }
     }
 }
