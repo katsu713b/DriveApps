@@ -1,4 +1,5 @@
-﻿using PFC;
+﻿using Microsoft.Extensions.Options;
+using PFC;
 using System.Collections.Concurrent;
 
 namespace DriveApp.Dash.PFC;
@@ -11,8 +12,12 @@ public class PFCContext: IDisposable
     public delegate void ApplicationShutDownHandler();
     public event ApplicationShutDownHandler? OnApplicationShutDown = null;
 
+    private PFCOption _option;
 
-    public PFCContext() { }
+    public PFCContext(IOptionsMonitor<PFCOption> options)
+    {
+        _option = options.CurrentValue;
+    }
 
     public Task<byte[]> GetData(byte[] command)
     {
@@ -27,7 +32,7 @@ public class PFCContext: IDisposable
 
     private async Task WaitPolling()
     {
-        await Task.Delay(200);
+        await Task.Delay(_option.InterruptWaitPollingMs);
         _interruptWait.TryDequeue(out _);
         if (_interruptWait.Count == 0)
             StartPolling = true;
@@ -50,5 +55,4 @@ public class PFCContext: IDisposable
     public Dictionary<string, byte[]> CommanderInfo => _commanderInfo;
 
     private readonly ConcurrentQueue<bool> _interruptWait = new ConcurrentQueue<bool>();
-    //public ConcurrentQueue<bool> InterruptWait => _interruptWait;
 }

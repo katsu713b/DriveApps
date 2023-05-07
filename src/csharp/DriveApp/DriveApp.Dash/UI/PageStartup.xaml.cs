@@ -1,7 +1,6 @@
-﻿using DriveApp.Dash.PFC;
+﻿using System;
 using System.Windows.Controls;
 using System.Windows.Navigation;
-using System.Windows.Threading;
 
 namespace DriveApp.Dash.UI
 {

@@ -2,11 +2,7 @@ using Microsoft.Extensions.Options;
 using PFC;
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.IO;
 using System.IO.Ports;
-using Microsoft.Extensions.Hosting;
-using System.Runtime.CompilerServices;
-using System.Windows.Documents;
 
 namespace DriveApp.Dash.PFC;
 
@@ -14,7 +10,7 @@ namespace DriveApp.Dash.PFC;
 /// PCFから読み取った情報をファイル出力する
 /// 
 /// </summary>
-public class PFCProvider : BackgroundService
+public class PFCProvider : Microsoft.Extensions.Hosting.BackgroundService
 {
     readonly PFCOption _pFCOptions;
     SerialPort _serialPort;
@@ -27,7 +23,6 @@ public class PFCProvider : BackgroundService
     ConcurrentQueue<int> _queueInterruptWait = new ConcurrentQueue<int>();
     TimeSpan _startTime = TimeSpan.Zero;
     TimeSpan _endTime = TimeSpan.Zero;
-
 
     public PFCProvider(IOptionsMonitor<PFCOption> options, PFCContext context, PFCLogWriter writer)
     {

@@ -5,8 +5,8 @@
     <TargetFramework>net7.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
-	  <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
-    <ImplicitUsings>enable</ImplicitUsings>
+	<EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <ImplicitUsings>disable</ImplicitUsings>
 	<ServerGarbageCollection>true</ServerGarbageCollection>
 	<PlatformTarget>x64</PlatformTarget>
 	  <VersionPrefix>0.1.0</VersionPrefix>
@@ -23,8 +23,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="GPSLap\**" />
+    <EmbeddedResource Remove="GPSLap\**" />
+    <None Remove="GPSLap\**" />
+    <Page Remove="GPSLap\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="appsettings.Development.json" />
     <None Remove="appsettings.Production.json" />
+    <None Remove="dashsettings.json" />
+    <None Remove="locations.json" />
     <None Remove="UI\PageDebug.xaml" />
   </ItemGroup>
 
@@ -35,30 +44,24 @@
     <Content Include="appsettings.Production.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="dashsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="locations.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
     <PackageReference Include="System.IO.Ports" Version="7.0.0" />
     <PackageReference Include="System.Runtime.Caching" Version="7.0.0" />
     <PackageReference Include="Wpf.Extensions.Hosting" Version="1.1.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="GPSLap\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\PFC\PFC\PFC.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="dashsettings.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="locations.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
 </Project>

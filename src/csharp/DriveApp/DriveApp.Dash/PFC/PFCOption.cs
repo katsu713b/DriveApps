@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DriveApp.Dash.PFC;
+﻿namespace DriveApp.Dash.PFC;
 
 public class PFCOption
 {
@@ -12,7 +6,7 @@ public class PFCOption
 
     public PortOptions PFCPort { get; set; } = new PortOptions();
     public PortOptions CommanderPort { get; set; } = new PortOptions();
-    public int InterruptWaitPollingMs { get; set; } = 200;
+    public int InterruptWaitPollingMs { get; set; }
 }
 
 public class PortOptions

@@ -60,7 +60,7 @@ public partial class DashWindow : Window
             _timer.Stop();
         };
 
-        _warningProvider = new WarningProvider(this, _dashSettings.WarningsValue);
+        _warningProvider = new WarningProvider(this, _dashSettings.Warnings);
         this.Closing += DashWindow_Closing;
     }
 
@@ -246,7 +246,7 @@ public partial class DashWindow : Window
 
     private class WarningProvider
     {
-        private DashSettings.Warnings _warnings;
+        private DashSettingWarnings _warnings;
 
         private DashWindow _window;
         private Storyboard _mainWarn;
@@ -261,7 +261,7 @@ public partial class DashWindow : Window
         private Stopwatch _warnTimer = new Stopwatch();
 
         // Alert(Blue) < Caution(Red) < Warn(Red Flush)
-        public WarningProvider(DashWindow window, DashSettings.Warnings warnings)
+        public WarningProvider(DashWindow window, DashSettingWarnings warnings)
         {
             _warnings = warnings;
             _window = window;

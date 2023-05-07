@@ -4,7 +4,7 @@ using System.IO.Ports;
 
 namespace DriveApp.Dash.PFC;
 
-public class PFCProxy : BackgroundService
+public class PFCProxy : Microsoft.Extensions.Hosting.BackgroundService
 {
     private readonly PFCOption _pFCOptions;
     private readonly PFCContext _pFCContext;

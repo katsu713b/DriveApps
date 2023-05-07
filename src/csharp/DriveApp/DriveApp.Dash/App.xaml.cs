@@ -15,6 +15,7 @@ namespace DriveApp.Dash
     {
         public App()
         {
+            InitializeComponent();
         }
     }
 }

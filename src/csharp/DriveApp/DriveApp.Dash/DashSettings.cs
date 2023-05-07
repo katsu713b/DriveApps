@@ -4,18 +4,19 @@ public class DashSettings
 {
     public const string Section = "DashSettings";
 
-    public double RpmMaxValue { get; set; } = 8000;
-    public int ThrottleVoltageMinValue { get; set; } = 510;
-    public int ThrottleVoltageMaxValue { get; set; } = 4400;
-    public Warnings WarningsValue { get; set; } = new Warnings();
+    public double RpmMaxValue { get; set; }
+    public int ThrottleVoltageMinValue { get; set; }
+    public int ThrottleVoltageMaxValue { get; set; }
+    public DashSettingWarnings Warnings { get; set; }
 
-    public class Warnings
-    {
-        public int CautionWaterTemp { get; set; } = 95;
-        public int CautionAirTemp { get; set; } = 70;
-        public int CautionFuelTemp { get; set; } = 50;
-        public int CautionKnock { get; set; } = 50;
-        public int CautionRpm { get; set; } = 7250;
-        public int WarnRpm { get; set; } = 7400;
-    }
+}
+
+public class DashSettingWarnings
+{
+    public int CautionWaterTemp { get; set; } = 95;
+    public int CautionAirTemp { get; set; } = 70;
+    public int CautionFuelTemp { get; set; } = 50;
+    public int CautionKnock { get; set; } = 50;
+    public int CautionRpm { get; set; }
+    public int WarnRpm { get; set; }
 }

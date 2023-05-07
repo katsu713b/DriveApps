@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:DriveApp.Dash">
     <Application.Resources>
-
         <Style TargetType="Label">
             <Setter Property="FontFamily" Value="Arial Black"/>
         </Style>
