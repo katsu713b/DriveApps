@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DriveApp.Dash.UI"
         mc:Ignorable="d"
-        Title="DashWindow" Height="600" Width="1024" WindowStyle="None" ResizeMode="NoResize"
-        IsHitTestVisible="True" Background="Black" WindowStartupLocation="CenterScreen">
+        Title="DashWindow" Height="600" Width="1024"
+        IsHitTestVisible="True" Background="Black" >
     <Window.DataContext>
         <local:DashWindowVM/>
     </Window.DataContext>
@@ -147,6 +147,7 @@
                 <TextBlock Text="7" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="691"/>
                 <TextBlock Text="8" Panel.ZIndex="11" Style="{StaticResource RpmPos}" Foreground="White" Canvas.Left="791"/>
             </Canvas>
+            <TextBlock HorizontalAlignment="Left" Margin="940,0,0,0" TextWrapping="Wrap" Text="{Binding Gear}" VerticalAlignment="Center" FontSize="48" FontWeight="Bold"/>
         </Grid>
 
         <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Height="128" Panel.ZIndex="6">
@@ -247,7 +248,7 @@
                     <Border.Background>
                         <SolidColorBrush x:Name="BorderMain" Color="#00FF0000"></SolidColorBrush>
                     </Border.Background>
-                    
+
                     <StackPanel Background="{Binding MainBackGColor}">
                         <Canvas Width="320" Height="20" Margin="60,10,40,0">
                             <Label Content="THR" Margin="-46,-2,0,0" FontSize="14" Background="{x:Null}"></Label>
@@ -270,7 +271,7 @@
                             <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="57.1" Fill="#FF252525" />
                             <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="71.4" Fill="#FF252525" />
                             <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="85.7" Fill="#FF252525" />
-                            
+
                             <Rectangle Panel.ZIndex="6" Width="5" Height="20" Canvas.Left="98" Fill="White" />
                             <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="116.9" Fill="#FF252525" />
                             <Rectangle Panel.ZIndex="6" Width="1" Height="20" Canvas.Left="133.8" Fill="#FF252525" />

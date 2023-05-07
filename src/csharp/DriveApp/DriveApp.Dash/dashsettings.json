@@ -1,0 +1,13 @@
+{
+  "RpmMaxValue": 8000,
+  "ThrottleVoltageMinValue": 510,
+  "ThrottleVoltageMaxValue": 4400,
+  "Warnings": {
+    "CautionWaterTemp": 95,
+    "CautionAirTemp": 70,
+    "CautionFuelTemp": 50,
+    "CautionKnock": 50,
+    "CautionRpm": 2900,
+    "WarnRpm": 3000
+  }
+}

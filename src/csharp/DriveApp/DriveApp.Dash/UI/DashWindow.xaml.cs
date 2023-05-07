@@ -1,4 +1,5 @@
 ﻿using DriveApp.Dash.PFC;
+using Microsoft.Extensions.Options;
 using PFC;
 using System.Diagnostics;
 using System.Windows;
@@ -16,17 +17,18 @@ public partial class DashWindow : Window
     private DispatcherTimer _timer;
     private DashWindowVM _dataContext;
     private PFCContext _pFCContext;
-    private WarningProvider _alertProvider;
+    private WarningProvider _warningProvider;
+    private DashSettings _dashSettings;
 
-    private const int CautionWaterTemp = 95;
-    private const int CautionAirTemp = 70;
-    private const int CautionFuelTemp = 50;
-    private const int CautionKnock = 50;
-    private const int CautionRpm = 7250;
-    private const int WarnRpm = 7400;
-    private const double RpmMaxValue = 8000.0;
-    private const int ThrottleVoltageMinValue = 510;
-    private const int ThrottleVoltageMaxValue = 4400;
+    //private const int CautionWaterTemp = 95;
+    //private const int CautionAirTemp = 70;
+    //private const int CautionFuelTemp = 50;
+    //private const int CautionKnock = 50;
+    //private const int CautionRpm = 7250;
+    //private const int WarnRpm = 7400;
+    //private const double RpmMaxValue = 8000.0;
+    //private const int ThrottleVoltageMinValue = 510;
+    //private const int ThrottleVoltageMaxValue = 4400;
     // 1 kg/cm2 = 98.0665 kPa
     // 1 mmHg = 0.00131579 kg/cm2
     // kPa = kg/cm2 x 9.80665
@@ -35,9 +37,10 @@ public partial class DashWindow : Window
     private TimeSpan _startFps = TimeSpan.Zero;
     private int _fps = 0;
 
-    public DashWindow(PFCContext pFCContext)
+    public DashWindow(PFCContext pFCContext, IOptionsMonitor<DashSettings> settings)
     {
         _pFCContext = pFCContext;
+        _dashSettings = settings.CurrentValue;
 
         InitializeComponent();
 
@@ -57,7 +60,7 @@ public partial class DashWindow : Window
             _timer.Stop();
         };
 
-        _alertProvider = new WarningProvider(this);
+        _warningProvider = new WarningProvider(this, _dashSettings.WarningsValue);
         this.Closing += DashWindow_Closing;
     }
 
@@ -96,9 +99,35 @@ public partial class DashWindow : Window
         UpdateDataContext(data);
     }
 
+    private Dictionary<string, (double Ratio, double Lower, double Upper)> GearRatio = new Dictionary<string, (double Ratio, double Lower, double Upper)>
+    {
+        {"3", (1.391, 1.279,  1.5) },    // +- 8%
+        {"2", (2.015, 1.81,   2.216) }, // +- 10%
+        {"4", (1,     0.95,   1.05) },   // +- 5%
+        {"5", (0.806, 0.7657,  0.8463) },   // +- 5%
+        {"1", (3.483, 2.96, 4.0) } // +- 15%
+    };
+
+    string GetGear(int speed, int rpm, double tireDiameter = 0.6)
+    {
+        var g = "N";
+        if (speed == 0)
+            return g;
+
+        foreach (var gear in GearRatio)
+        {
+            double ratio = (rpm * tireDiameter * Math.PI * 60) / (1000 * speed * 4.1);
+            //var ratio = (data.Speed * 60 * 0.631 * 3.14) / (data.Rpm * gear.Value.Ratio);
+            if (gear.Value.Lower <= ratio && ratio <= gear.Value.Upper)
+                return gear.Key;
+        }
+
+        return g;
+    }
+
     private void UpdateDataContext(AdvancedData data)
     {
-        _alertProvider.UpdateWarns(data);
+        _warningProvider.UpdateWarns(data);
 
         _dataContext.KnockLevel = data.KnockLevel.ToString();
 
@@ -134,7 +163,7 @@ public partial class DashWindow : Window
         }
         else
         {
-            var rate = Math.Max(0, 1 - rpm / RpmMaxValue);
+            var rate = Math.Max(0, 1 - rpm / _dashSettings.RpmMaxValue);
             var width = 800 * Math.Min(1, rate);
             _dataContext.RpmBarPos = 800 - width;
             _dataContext.RpmBarWidth = width;
@@ -143,8 +172,8 @@ public partial class DashWindow : Window
         // Throttle bar
         {
             // 510 - 4400(mV)
-            var throttle = Math.Max(0, data.ThrottleSensorVoltage - ThrottleVoltageMinValue);
-            var rate = Math.Max(0, 1 - (double)throttle / (ThrottleVoltageMaxValue - ThrottleVoltageMinValue));
+            var throttle = Math.Max(0, data.ThrottleSensorVoltage - _dashSettings.ThrottleVoltageMinValue);
+            var rate = Math.Max(0, 1 - (double)throttle / (_dashSettings.ThrottleVoltageMaxValue - _dashSettings.ThrottleVoltageMinValue));
             var width = 320 * Math.Min(1, rate);
 
             _dataContext.ThrottleBarPos = 320 - width;
@@ -199,15 +228,26 @@ public partial class DashWindow : Window
         _dataContext.WaterTemp = data.WaterTemp.ToString();
         _dataContext.FuelTemp = data.FuelTemp.ToString();
         _dataContext.BattVoltage = data.BattVoltage.ToString("F1");
+
+
+        if (_skipGearCount++ >= 3)
+        {
+            _dataContext.Gear = GetGear(data.Speed, data.Rpm);
+            _skipGearCount = 0;
+        }
         
+
+
         _dataContext.ConnectedPFC = _pFCContext.IsPFCConnected ? Visibility.Visible: Visibility.Hidden;
         _dataContext.ConnectedCMD = _pFCContext.IsCommanderConnected ? Visibility.Visible : Visibility.Hidden;
 
     }
-
+    private int _skipGearCount = 0;
 
     private class WarningProvider
     {
+        private DashSettings.Warnings _warnings;
+
         private DashWindow _window;
         private Storyboard _mainWarn;
         private Storyboard _rpmWarn;
@@ -221,8 +261,9 @@ public partial class DashWindow : Window
         private Stopwatch _warnTimer = new Stopwatch();
 
         // Alert(Blue) < Caution(Red) < Warn(Red Flush)
-        public WarningProvider(DashWindow window)
+        public WarningProvider(DashWindow window, DashSettings.Warnings warnings)
         {
+            _warnings = warnings;
             _window = window;
             _mainWarn = window.Resources["sbMainWarn"] as Storyboard ?? throw new ArgumentNullException("sbMainWarn");
             _rpmWarn = window.Resources["sbRpmWarn"] as Storyboard ?? throw new ArgumentNullException("sbRpmWarn");
@@ -236,7 +277,7 @@ public partial class DashWindow : Window
         {
             var context = _window._dataContext;
 
-            if (data.KnockLevel >= CautionKnock)
+            if (data.KnockLevel >= _warnings.CautionKnock)
             {
                 BeginMainWarn();
                 context.KnockBackGColor = ColorCaution;
@@ -249,17 +290,17 @@ public partial class DashWindow : Window
             }
 
             var rpm = data.Rpm;
-            if (rpm < CautionRpm)
+            if (rpm < _warnings.CautionRpm)
             {
                 context.RpmBarCautionVisible = Visibility.Hidden;
                 StopRpmWarn();
             }
-            else if (rpm >= CautionRpm && rpm < WarnRpm)
+            else if (rpm >= _warnings.CautionRpm && rpm < _warnings.WarnRpm)
             {
                 context.RpmBarCautionVisible = Visibility.Visible;
                 StopRpmWarn();
             }
-            else if (rpm >= WarnRpm)
+            else if (rpm >= _warnings.WarnRpm)
             {
                 context.RpmBarCautionVisible = Visibility.Hidden;
                 BeginRpmWarn();
@@ -274,9 +315,9 @@ public partial class DashWindow : Window
                 context.BoostBackGColor = ColorNormal;
             }
 
-            context.AirTempBackGColor = data.AirTemp >= CautionAirTemp ? ColorCaution : ColorNormal;
-            context.WaterTempBackGColor = data.WaterTemp >= CautionWaterTemp ? ColorCaution : ColorNormal;
-            context.FuelTempBackGColor = data.FuelTemp >= CautionFuelTemp ? ColorCaution : ColorNormal;
+            context.AirTempBackGColor = data.AirTemp >= _warnings.CautionAirTemp ? ColorCaution : ColorNormal;
+            context.WaterTempBackGColor = data.WaterTemp >= _warnings.CautionWaterTemp ? ColorCaution : ColorNormal;
+            context.FuelTempBackGColor = data.FuelTemp >= _warnings.CautionFuelTemp ? ColorCaution : ColorNormal;
         }
 
         private bool _beginingMainWarn = false;
@@ -364,6 +405,13 @@ public class DashWindowVM : ViewModelBase
     {
         get => _MainBackGColor;
         set { if (_MainBackGColor != value) { _MainBackGColor = value; RaisePropertyChanged(); } }
+    }
+
+    private string _Gear = "N";
+    public string Gear
+    {
+        get => _Gear;
+        set { if (_Gear != value) { _Gear = value; RaisePropertyChanged(); } }
     }
 
     #region Values

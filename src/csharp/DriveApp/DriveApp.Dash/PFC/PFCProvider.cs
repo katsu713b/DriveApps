@@ -87,7 +87,7 @@ public class PFCProvider : BackgroundService
                 // TODO: json file
                 await GetCommanderInfo(ct);
 
-                await Task.Delay(500);
+                await Task.Delay(100);
 
                 await Initial(ct);
 
@@ -246,7 +246,7 @@ public class PFCProvider : BackgroundService
                 continue;
             }
 
-            if (_pFCContext.LatestAdvancedData == null || _pFCContext.LatestAdvancedData.Rpm < 500)
+            if (_pFCContext.LatestAdvancedData != null && _pFCContext.LatestAdvancedData.Rpm < 500)
             {
                 await Task.Delay(1000);
             }

@@ -1,9 +1,6 @@
-﻿using PFCProxy;
+﻿using PFC;
+using PFCProxy;
 using System.IO.Ports;
-using PFC;
-using System.Data;
-using System;
-using System.IO;
 
 foreach (var name in SerialPort.GetPortNames())
 {
@@ -88,7 +85,7 @@ using (SerialPort serialOut = new SerialPort())
                     //await Task.Delay(100);
 
                     // PFC -> Proxy
-                    var res = serialOut.Read(true);
+                    var res = serialOut.Read();
                     if (res.Length == 0) continue;
 
                     // Proxy -> Soft/Commander

@@ -83,10 +83,11 @@ public class PFCProxy : BackgroundService
                 break;
             }
 
-            _serialPort.SetUpPFC(_pFCOptions.CommanderPort.Name, _pFCOptions.CommanderPort.ReadTimeout, _pFCOptions.CommanderPort.WriteTimeout);
-
             if (!_serialPort.IsOpen)
+            {
+                _serialPort.SetUpPFC(_pFCOptions.CommanderPort.Name, _pFCOptions.CommanderPort.ReadTimeout, _pFCOptions.CommanderPort.WriteTimeout);
                 _serialPort.Open();
+            }
         }
     }
 

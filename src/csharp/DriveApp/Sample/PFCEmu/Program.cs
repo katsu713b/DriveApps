@@ -60,8 +60,10 @@ if (samples == null)
     Console.WriteLine("empty sample.json");
     return;
 }
+var success = "F2-02-0B";
 
-using (StreamReader file = new StreamReader(@$"C:\DriveApp\bin\pfc\data\{run}"))
+//using (StreamReader file = new StreamReader(@$"C:\DriveApp\bin\pfc\data\{run}"))
+using (FileStream file = new FileStream(@$"C:\Users\katsu713b\Desktop\fcl\20230506\pfclog_advanced_2023-05-06-00.dat", FileMode.Open))
 using (SerialPort serialPort = new SerialPort())
 {
     serialPort.SetUpPFC(com, timeout, timeout);
@@ -82,14 +84,24 @@ using (SerialPort serialPort = new SerialPort())
     {
         var line = string.Empty;
 
-        while (string.IsNullOrEmpty(line))
-        {
-            if (file.EndOfStream)
-                file.BaseStream.Position = 0;
-            line = file.ReadLine();
-        }
+        //while (string.IsNullOrEmpty(line))
+        //{
+        //    if (file.EndOfStream)
+        //        file.BaseStream.Position = 0;
+        //    line = file.ReadLine();
+        //}
 
-        return line;
+        //return line;
+
+        if (file.Position == 0)
+            file.Position = 32+8;
+
+        // 8+33
+        byte[] data = new byte[33];
+        file.Read(data, 0, 33);
+        
+        file.Position += 8;
+        return BitConverter.ToString(data, 0, data.Length);
     }
 
     while (running)
@@ -142,15 +154,30 @@ using (SerialPort serialPort = new SerialPort())
                     }
                     break;
                 default:
+                    var c = txt.Split("-");
 
-                    if (samples.ContainsKey(txt))
+                    var id = c[0];
+                    var isRead = c[1] == "02";
+
+                    if (samples.ContainsKey(id))
                     {
                         if (delay > 0)
                             await Task.Delay(delay);
-                        res = samples[txt];
-                        var resbyte = Helper.ConvertToByte(samples[txt]);
-                        serialPort.Write(resbyte, 0, resbyte.Length);
-                        Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss.fff")}] W:{res}");
+
+                        if (isRead)
+                        {
+                            res = samples[id];
+                            var resbyte = Helper.ConvertToByte(res);
+                            serialPort.Write(resbyte, 0, resbyte.Length);
+                            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss.fff")}] W:{res}");
+                        }
+                        else
+                        {
+                            res = success;
+                            var resbyte = Helper.ConvertToByte(res);
+                            serialPort.Write(resbyte, 0, resbyte.Length);
+                            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss.fff")}] W:{res}");
+                        }
                     }
                     else
                     {
